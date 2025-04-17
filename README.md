@@ -20,13 +20,19 @@ The scenarios are organized into different categories based on the type of issue
 
 Scenarios related to networking issues, including services, ingress, DNS, and network policies.
 
-- [Scenario 01: Service Connection Failure](scenarios/01-networking/scenario-02/)
+- [Scenario 01: Service Connection Failure](scenarios/01-networking/scenario-01/)
 
 ### 2. Resource Management
 
 Scenarios related to resource limits, requests, quotas, and autoscaling.
 
 - [Scenario 01: Application Repeatedly Crashing with OOMKilled](scenarios/02-resource-management/scenario-01/)
+
+### 3. Node Health
+
+Scenarios related to node availability, health checks, and resource constraints.
+
+- [Scenario 01: Node Not Ready](scenarios/03-node-health/scenario-01/)
 
 ## How to Use
 
