@@ -17,6 +17,19 @@ This directory contains scenarios focused on node health issues in Kubernetes cl
 - Analyzing system daemon status
 - Resolving common node failures
 
+### [Scenario 02: Node Memory Pressure](./scenario-02/)
+
+**Issue:** A node experiences memory pressure leading to pod evictions, OOM kills, and potential NotReady state.
+
+**Learning Focus:** Understanding how Kubernetes handles resource pressure, memory management, and eviction policies.
+
+**Skills Practiced:**
+- Detecting memory pressure conditions
+- Identifying memory-hungry workloads
+- Analyzing OOM events and pod evictions
+- Implementing appropriate resource limits
+- Resolving memory pressure situations
+
 ## Running the Scenarios
 
 Each scenario contains:
@@ -29,7 +42,7 @@ To run a scenario:
 
 1. Navigate to the scenario directory
    ```bash
-   cd scenario-01
+   cd scenario-01  # or scenario-02, etc.
    ```
 
 2. Deploy the scenario

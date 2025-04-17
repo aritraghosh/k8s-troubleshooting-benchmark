@@ -33,6 +33,7 @@ Scenarios related to resource limits, requests, quotas, and autoscaling.
 Scenarios related to node availability, health checks, and resource constraints.
 
 - [Scenario 01: Node Not Ready](scenarios/03-node-health/scenario-01/)
+- [Scenario 02: Node Memory Pressure](scenarios/03-node-health/scenario-02/)
 
 ## How to Use
 

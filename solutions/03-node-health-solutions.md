@@ -167,4 +167,157 @@ To resolve the simulated issue, the cleanup script:
 3. Uncordons the node
 4. Removes all deployed testing resources
 
-This simulation provides a safe way to practice troubleshooting NotReady nodes without actually causing node failures in your cluster. 
+This simulation provides a safe way to practice troubleshooting NotReady nodes without actually causing node failures in your cluster.
+
+---
+
+## Scenario 02: Node Memory Pressure
+
+In this debugging scenario, a node in the Kubernetes cluster experiences memory pressure, leading to pod evictions, OOM kills, and potentially a NotReady state.
+
+### Root Cause
+
+The root cause is excessive memory consumption on the node, either by:
+
+1. **Memory-hungry container workloads**
+   - Pods with high memory consumption
+   - Pods with memory leaks
+   - Pods without appropriate memory limits
+
+2. **System-level processes**
+   - Node system daemons using too much memory
+   - Kubelet itself consuming excessive memory
+   - Kernel or operating system memory leaks
+
+3. **Resource allocation issues**
+   - Over-committed node resources
+   - Insufficient memory for the workload profile
+   - Improperly configured eviction thresholds
+
+### Diagnostic Process
+
+Memory pressure issues can be identified through:
+
+1. **Check node conditions:**
+   ```bash
+   kubectl get nodes
+   kubectl describe node <node-name>
+   ```
+   Look for `MemoryPressure=True` condition and memory-related taints.
+
+2. **Identify memory-hungry pods:**
+   ```bash
+   kubectl top pods --all-namespaces --sort-by=memory
+   kubectl get pods --all-namespaces -o wide | grep <node-name>
+   ```
+
+3. **Examine system memory:**
+   ```bash
+   # If you have node access:
+   free -m
+   top
+   ps aux --sort=-%mem
+   ```
+
+4. **Check for OOM events:**
+   ```bash
+   dmesg | grep -i oom
+   journalctl -u kubelet | grep -i "memory pressure"
+   ```
+
+5. **Review Kubernetes events:**
+   ```bash
+   kubectl get events --sort-by=.metadata.creationTimestamp
+   ```
+   Look for eviction events related to memory pressure.
+
+### Solutions
+
+#### 1. Immediate Memory Relief
+
+The immediate goal is to reduce memory pressure:
+
+```bash
+# Identify and remove memory-hungry pods
+kubectl top pods --all-namespaces --sort-by=memory
+kubectl delete pod <memory-hogging-pod> -n <namespace>
+
+# For DaemonSets or Deployments:
+kubectl delete daemonset <name> -n <namespace>
+kubectl scale deployment <name> --replicas=0 -n <namespace>
+```
+
+#### 2. Configure Resource Limits
+
+Implement appropriate memory limits for all workloads:
+
+```yaml
+resources:
+  requests:
+    memory: "128Mi"  # Minimum needed memory
+  limits:
+    memory: "256Mi"  # Maximum allowed memory
+```
+
+Apply limits to existing deployments:
+
+```bash
+kubectl set resources deployment <name> -n <namespace> --limits=memory=256Mi --requests=memory=128Mi
+```
+
+#### 3. Node-Level Remediation
+
+If system-level issues are causing memory pressure:
+
+```bash
+# Restart kubelet service
+sudo systemctl restart kubelet
+
+# Identify and restart memory-intensive system processes
+ps aux --sort=-%mem | head -10
+sudo systemctl restart <service-name>
+
+# Add swap space (not recommended for production K8s nodes, but can help in emergencies)
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+#### 4. Long-Term Strategies
+
+- **Implement resource quotas** at namespace level
+- **Use LimitRanges** to enforce default limits
+- **Optimize application memory usage**
+- **Add more memory capacity** to nodes
+- **Implement cluster autoscaling**
+- **Set up monitoring and alerting** for memory metrics
+
+### Preventive Measures
+
+1. **Properly size pods and nodes** based on actual workload requirements
+2. **Implement memory monitoring** with alerts before pressure occurs
+3. **Use resource quotas** at namespace level
+4. **Configure appropriate kubelet eviction thresholds**
+5. **Test workloads under load** to identify memory consumption patterns
+6. **Schedule regular garbage collection** for languages with managed memory
+7. **Use container memory limits** as a safety mechanism
+8. **Create node affinity rules** to distribute memory-intensive workloads
+
+### Simulated Scenario Notes
+
+In the benchmark scenario, memory pressure is simulated by:
+
+1. Deploying a memory-intensive DaemonSet to the target node
+2. Gradually increasing memory consumption to avoid sudden node failures
+3. Applying memory pressure conditions and taints
+4. Simulating pod evictions and OOM events
+
+The cleanup script addresses this by:
+
+1. Removing the memory-intensive workloads
+2. Clearing memory pressure conditions and taints
+3. Restoring the node to a normal Ready state
+4. Removing all test resources
+
+This realistic simulation allows safe practice of memory pressure troubleshooting without risking actual cluster stability. 
