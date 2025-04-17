@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-app
+  namespace: debug-svc-01
+  labels:
+    app: client-app
+spec:
+  replicas: 1  # We only need one instance of the client app
+  selector:
+    matchLabels:
+      app: client-app
+  template:
+    metadata:
+      labels:
+        app: client-app
+    spec:
+      containers:
+      - name: client
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+          name: http  # Named port for better readability
+        volumeMounts:
+        # Mount the HTML content for the client app
+        - name: client-content
+          mountPath: /usr/share/nginx/html
+        # Mount the Nginx configuration for proxying to the data service
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        resources:
+          # Setting reasonable resource limits
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      # ConfigMap containing the HTML/JS content
+      - name: client-content
+        configMap:
+          name: client-content
+      # ConfigMap containing the Nginx configuration for proxying
+      - name: nginx-config
+        configMap:
+          name: client-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-service
+  namespace: debug-svc-01
+spec:
+  selector:
+    app: client-app  # Select pods with the client-app label
+  ports:
+  - port: 80         # The port the service is exposed on
+    targetPort: 80   # The port the pods are listening on
+  type: ClusterIP 

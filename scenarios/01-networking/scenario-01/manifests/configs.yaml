@@ -1,0 +1,200 @@
+##############################################################
+# Data Service Configuration
+##############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-service-config
+  namespace: debug-svc-01
+data:
+  # Nginx configuration for the data service
+  default.conf: |
+    server {
+      listen 80;
+      
+      # Root endpoint returns a JSON response
+      location / {
+        default_type application/json;
+        return 200 '{"status":"ok","service":"data-service","message":"Data service is working!"}';
+      }
+      
+      # Health check endpoint
+      location /health {
+        default_type application/json;
+        return 200 '{"status":"healthy"}';
+      }
+    }
+
+---
+
+##############################################################
+# Client App HTML Content
+##############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: client-content
+  namespace: debug-svc-01
+data:
+  # HTML content for the client application
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Data Service Connection Test</title>
+      <style>
+        /* Basic styling for the page */
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          line-height: 1.6;
+        }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+        /* Status indicators */
+        .status {
+          padding: 15px;
+          margin: 10px 0;
+          border-radius: 4px;
+        }
+        .success {
+          background-color: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
+        }
+        .error {
+          background-color: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
+        }
+        .loading {
+          background-color: #cce5ff;
+          border: 1px solid #b8daff;
+          color: #004085;
+        }
+        /* Button styling */
+        button {
+          background-color: #4CAF50;
+          color: white;
+          padding: 10px 15px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        button:hover {
+          background-color: #45a049;
+        }
+        /* Code styling */
+        code {
+          font-family: monospace;
+          background-color: #f1f1f1;
+          padding: 2px 5px;
+          border-radius: 3px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Data Service Connection Test</h1>
+        <p>This page tests connectivity to the data service.</p>
+        
+        <h2>Client Status</h2>
+        <div class="status success">
+          Client application is running correctly.
+        </div>
+        
+        <h2>Data Service Connectivity Test</h2>
+        <div id="serviceStatus" class="status loading">
+          Testing connection to data service...
+        </div>
+        
+        <div id="commands" style="margin-top: 20px;">
+          <h3>Debugging Steps</h3>
+          <p>If you see a connection error, try these commands to debug:</p>
+          <ol>
+            <li><code>kubectl get pods -n debug-svc-01</code> - Check if all pods are running</li>
+            <li><code>kubectl get svc -n debug-svc-01</code> - Check if services are created correctly</li>
+            <li><code>kubectl describe svc data-service -n debug-svc-01</code> - Check the service definition</li>
+            <li><code>kubectl get endpoints data-service -n debug-svc-01</code> - Check if the service has endpoints</li>
+            <li><code>kubectl get pods -l app=data-service -n debug-svc-01 --show-labels</code> - Check pod labels</li>
+            <li><code>kubectl port-forward svc/data-service -n debug-svc-01 8888:80</code> - Try direct port-forwarding</li>
+            <li><code>kubectl port-forward pods/$(kubectl get pod -l app=data-service -n debug-svc-01 -o jsonpath='{.items[0].metadata.name}') 8889:80 -n debug-svc-01</code> - Try port-forwarding to a pod</li>
+          </ol>
+        </div>
+        
+        <button onclick="testService()">Retry Connection</button>
+      </div>
+      
+      <script>
+        // Test connection on page load
+        testService();
+        
+        /**
+         * Test the connection to the data service
+         * The connection will be made to /api/data which is proxied to the data service
+         */
+        function testService() {
+          const statusDiv = document.getElementById('serviceStatus');
+          statusDiv.className = 'status loading';
+          statusDiv.textContent = 'Testing connection to data service...';
+          
+          // Attempt to fetch from the data service via the Nginx proxy
+          fetch('/api/data')
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`Status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              // Display success message
+              statusDiv.className = 'status success';
+              statusDiv.innerHTML = `<strong>Success!</strong> Data service responded: ${JSON.stringify(data)}`;
+            })
+            .catch(error => {
+              // Display error message
+              statusDiv.className = 'status error';
+              statusDiv.innerHTML = `<strong>Connection Error:</strong> Could not connect to the data service. <br>Error: ${error.message}<br><br>This is the issue you need to debug! Check the service definition and endpoints.`;
+            });
+        }
+      </script>
+    </body>
+    </html>
+
+---
+
+##############################################################
+# Client App Nginx Configuration
+##############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: client-nginx-config
+  namespace: debug-svc-01
+data:
+  # Nginx configuration for the client app
+  default.conf: |
+    server {
+      listen 80;
+      
+      # Serve static content from HTML directory
+      location / {
+        root /usr/share/nginx/html;
+        index index.html;
+      }
+      
+      # Proxy requests to /api/data to the data service
+      location /api/data {
+        # Forward requests to the data service
+        proxy_pass http://data-service/;
+        # Pass along important headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+      }
+    } 

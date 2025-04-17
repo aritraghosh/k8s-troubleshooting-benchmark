@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-intensive-app
+  namespace: debug-rm-01
+  labels:
+    app: memory-intensive-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-intensive-app
+  template:
+    metadata:
+      labels:
+        app: memory-intensive-app
+    spec:
+      containers:
+      - name: memory-app
+        image: polinux/stress
+        command: ["stress"]
+        # This will allocate 750MB of memory, but the container is limited to 256Mi
+        args: ["--vm", "1", "--vm-bytes", "750M", "--vm-hang", "0"]
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"  # This is intentionally set too low
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "ps aux | grep stress"
+          initialDelaySeconds: 5
+          periodSeconds: 5 

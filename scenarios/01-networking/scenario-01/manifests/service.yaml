@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-service
+  namespace: debug-svc-01
+spec:
+  # The issue is in this selector - it's mismatched with the pod labels
+  # Pods are labeled with 'tier: data' but service is selecting 'tier: database'
+  selector:
+    app: data-service
+    tier: database  # Intentional mismatch: pods use 'tier: data' instead
+  ports:
+  - port: 80        # The port the service is exposed on
+    targetPort: 80  # The port the pods are listening on
+  type: ClusterIP 
